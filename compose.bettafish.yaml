@@ -1,0 +1,26 @@
+# Explicit opt-in override. Does not activate licensing or raise LLM budgets.
+x-bettafish-runtime: &bettafish-runtime
+  image: ${BETTAFISH_IMAGE:-hr-intelligence-backend:bettafish}
+  build:
+    context: .
+    dockerfile: backend/Dockerfile.bettafish
+    args:
+      BASE_IMAGE: ${BACKEND_IMAGE:-hr-intelligence-backend:local}
+      PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+      BETTAFISH_FETCH_PROXY: ${BETTAFISH_FETCH_PROXY:-}
+  environment:
+    BETTAFISH_REPO_DIR: /opt/bettafish-src
+    BETTAFISH_PYTHON: /opt/bettafish-venv/bin/python
+    BETTAFISH_REVISION: b67928ff1ce515dd7672408221fb1e9500d0972d
+    BETTAFISH_LICENSE_CONFIRMED: ${BETTAFISH_LICENSE_CONFIRMED:-false}
+    GIT_OPTIONAL_LOCKS: '0'
+
+services:
+  migrate:
+    <<: *bettafish-runtime
+  api:
+    <<: *bettafish-runtime
+  worker:
+    <<: *bettafish-runtime
+  beat:
+    <<: *bettafish-runtime

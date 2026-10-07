@@ -1,0 +1,17 @@
+{
+  "kind": "official",
+  "version": "official-native-0.1",
+  "response_path_pattern": "jobs|positions|careers",
+  "list_paths": [["blocks"]],
+  "fields": {
+    "id": [["identifier", "value"], ["identifier"]],
+    "title": [["title"]],
+    "company": [["hiringOrganization", "name"]],
+    "company_id": [["hiringOrganization", "identifier"]],
+    "salary": [["baseSalary", "value"]],
+    "location": [["jobLocation", "address", "addressLocality"]],
+    "experience": [["experienceRequirements"]],
+    "education": [["educationRequirements"]]
+  },
+  "detail_selectors": [".job-description", ".position-description", "article.job-posting"]
+}

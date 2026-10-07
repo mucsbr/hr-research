@@ -1,0 +1,6 @@
+FROM hr-intelligence-web:local
+USER root
+COPY frontend/dist/ /usr/share/nginx/html/
+COPY deploy/nginx.conf /etc/nginx/nginx.conf
+RUN chmod -R a+rX /usr/share/nginx/html && chmod 644 /etc/nginx/nginx.conf
+USER 65534:65534

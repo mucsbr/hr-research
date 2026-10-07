@@ -1,0 +1,194 @@
+name: ${COMPOSE_PROJECT_NAME:-hr-intelligence}
+
+x-app-environment: &app-environment
+  APP_ENV: production
+  APP_URL: ${APP_URL:-http://127.0.0.1:18080}
+  DATABASE_URL: postgresql+psycopg://hr_intelligence:${POSTGRES_PASSWORD:?generate deploy/server.env first}@postgres:5432/hr_intelligence
+  REDIS_URL: redis://:${REDIS_PASSWORD:?generate deploy/server.env first}@redis:6379/0
+  APP_SECRET: ${APP_SECRET:?generate deploy/server.env first}
+  ENCRYPTION_KEY: ${ENCRYPTION_KEY:?generate deploy/server.env first}
+  ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:?generate deploy/server.env first}
+  COOKIE_SECURE: ${COOKIE_SECURE:-false}
+  STORAGE_DIR: /data/artifacts
+  BROWSER_PROFILES_DIR: /data/browser-profiles
+  BROWSER_CACHE_DIR: /opt/playwright
+  BROWSER_SERVICE_URL: http://api:8000
+  # Chromium crashpad/cache must stay writable with a read-only container root.
+  XDG_CONFIG_HOME: /tmp/browser-config
+  XDG_CACHE_HOME: /tmp/browser-cache
+  PUBLIC_DNS_FALLBACK: ${PUBLIC_DNS_FALLBACK:-false}
+  PUBLIC_DNS_RESOLVER: ${PUBLIC_DNS_RESOLVER:-alidns}
+  CHECKPOINT_MAX_AGE_SECONDS: ${CHECKPOINT_MAX_AGE_SECONDS:-3600}
+  CHECKPOINT_MAX_RAW_BYTES: ${CHECKPOINT_MAX_RAW_BYTES:-30000000}
+  CHECKPOINT_MAX_STEPS: ${CHECKPOINT_MAX_STEPS:-600}
+  CHECKPOINT_MAX_RECORDS: ${CHECKPOINT_MAX_RECORDS:-500}
+  LLM_BASE_URL: ${LLM_BASE_URL:-}
+  LLM_API_KEY: ${LLM_API_KEY:-}
+  LLM_MODEL: ${LLM_MODEL:-glm-5.3}
+  LLM_FALLBACK_MODEL: ${LLM_FALLBACK_MODEL:-deepseek-flash}
+  LLM_REASONING_EFFORT: ${LLM_REASONING_EFFORT:-low}
+  LLM_DAILY_REQUEST_LIMIT: ${LLM_DAILY_REQUEST_LIMIT:-0}
+  LLM_TASK_CALL_LIMIT: ${LLM_TASK_CALL_LIMIT:-3}
+  LLM_MAX_OUTPUT_TOKENS: ${LLM_MAX_OUTPUT_TOKENS:-1200}
+  LLM_MAX_INPUT_CHARS: ${LLM_MAX_INPUT_CHARS:-16000}
+  LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-90}
+  BETTAFISH_URL: ${BETTAFISH_URL:-}
+  BETTAFISH_REPO_DIR: ${BETTAFISH_REPO_DIR:-}
+  BETTAFISH_PYTHON: ${BETTAFISH_PYTHON:-}
+  BETTAFISH_REVISION: ${BETTAFISH_REVISION:-b67928ff1ce515dd7672408221fb1e9500d0972d}
+  BETTAFISH_LICENSE_CONFIRMED: ${BETTAFISH_LICENSE_CONFIRMED:-false}
+  BETTAFISH_TIMEOUT_SECONDS: ${BETTAFISH_TIMEOUT_SECONDS:-600}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USERNAME: ${SMTP_USERNAME:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_FROM: ${SMTP_FROM:-}
+  SMTP_SECURITY: ${SMTP_SECURITY:-starttls}
+  NOTIFICATION_ALLOWED_HOSTS: ${NOTIFICATION_ALLOWED_HOSTS:-}
+  NOTIFICATION_TIMEOUT_SECONDS: ${NOTIFICATION_TIMEOUT_SECONDS:-15}
+  TZ: Asia/Shanghai
+
+x-backend: &backend
+  image: ${BACKEND_IMAGE:-hr-intelligence-backend:local}
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+    args:
+      PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.12-slim-bookworm}
+      PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+      PLAYWRIGHT_DOWNLOAD_HOST: ${PLAYWRIGHT_DOWNLOAD_HOST:-}
+  environment: *app-environment
+  volumes:
+    - app-data:/data
+  networks: [app, data]
+  init: true
+  read_only: true
+  tmpfs:
+    - /tmp:size=768m,mode=1777
+  shm_size: 512m
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:16-alpine}
+    environment:
+      POSTGRES_USER: hr_intelligence
+      POSTGRES_DB: hr_intelligence
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?generate deploy/server.env first}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks: [data]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U hr_intelligence -d hr_intelligence']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: ${REDIS_IMAGE:-redis:8-alpine}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?generate deploy/server.env first}
+    command: [/bin/sh, -ec, 'exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"']
+    volumes:
+      - redis-data:/data
+    networks: [data]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    <<: *backend
+    command: [python, -m, alembic, -c, /app/backend/alembic.ini, upgrade, head]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    restart: 'no'
+
+  api:
+    <<: *backend
+    environment:
+      <<: *app-environment
+      ADAPTER_RUNNER_URL: ${ADAPTER_RUNNER_URL:-}
+      ADAPTER_RUNNER_TOKEN: ${ADAPTER_RUNNER_TOKEN:-}
+      ADAPTER_RUNNER_RUNTIME_DIGEST: ${ADAPTER_RUNNER_RUNTIME_DIGEST:-}
+      ADAPTER_RUNNER_TIMEOUT_SECONDS: ${ADAPTER_RUNNER_TIMEOUT_SECONDS:-90}
+    # LoginManager owns in-memory browser sessions: keep exactly one API process.
+    command: [python, -m, uvicorn, app.main:app, --host, 0.0.0.0, --port, '8000', --workers, '1']
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, python, -c, 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/api/v1/readiness", timeout=3)']
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 12
+
+  worker:
+    <<: *backend
+    environment:
+      <<: *app-environment
+      ADAPTER_RUNNER_URL: ${ADAPTER_RUNNER_URL:-}
+      ADAPTER_RUNNER_TOKEN: ${ADAPTER_RUNNER_TOKEN:-}
+      ADAPTER_RUNNER_RUNTIME_DIGEST: ${ADAPTER_RUNNER_RUNTIME_DIGEST:-}
+      ADAPTER_RUNNER_TIMEOUT_SECONDS: ${ADAPTER_RUNNER_TIMEOUT_SECONDS:-90}
+    command: [python, -m, celery, -A, app.queue:celery, worker, --pool=threads, --concurrency=3, -Q, 'recruitment,analysis,sentiment,news,notifications,maintenance,celery', --hostname, 'hr-worker@%h', --loglevel=WARNING]
+    depends_on:
+      api: {condition: service_healthy}
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'python -m celery -A app.queue:celery inspect ping -d "hr-worker@$$HOSTNAME" --timeout 5 | grep -q pong']
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+
+  beat:
+    <<: *backend
+    command: [python, -m, celery, -A, app.queue:celery, beat, --schedule, /data/beat/celerybeat-schedule, --loglevel=WARNING]
+    depends_on:
+      api: {condition: service_healthy}
+    restart: unless-stopped
+
+  web:
+    image: ${FRONTEND_IMAGE:-hr-intelligence-web:local}
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-node:22-bookworm-slim}
+        NGINX_IMAGE: ${NGINX_IMAGE:-nginx:1.28-alpine}
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
+    ports:
+      - '${BIND_ADDRESS:-127.0.0.1}:${HTTP_PORT:-18080}:8080'
+    networks: [app]
+    depends_on:
+      api: {condition: service_healthy}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8080/healthz']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+networks:
+  app: {}
+  data:
+    internal: true
+
+volumes:
+  postgres-data: {}
+  redis-data: {}
+  app-data: {}

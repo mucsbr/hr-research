@@ -1,0 +1,23 @@
+{
+  "kind": "boss",
+  "version": "native-0.1",
+  "reference": {
+    "repository": "https://github.com/eatmoreduck/boss-zhipin-scraper",
+    "commit": "46e2965de42c6c44a18021c1f8602a62b838297c",
+    "path": "scripts/boss_cdp_raw.py",
+    "usage": "Reference for passive response capture and public job field contract; upstream CLI is not executed."
+  },
+  "response_path_pattern": "joblist|job/list",
+  "list_paths": [["zpData", "jobList"]],
+  "fields": {
+    "id": [["encryptJobId"]],
+    "title": [["jobName"]],
+    "company": [["brandName"]],
+    "company_id": [["encryptBrandId"]],
+    "salary": [["salaryDesc"]],
+    "location": [["cityName"]],
+    "experience": [["jobExperience"]],
+    "education": [["jobDegree"]]
+  },
+  "detail_selectors": [".job-sec-text", ".job-detail .text", ".job-description"]
+}

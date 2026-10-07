@@ -1,0 +1,10 @@
+ARG VALIDATED_BASE=hr-intelligence-backend:bettafish-eval-20261005
+FROM ${VALIDATED_BASE}
+USER root
+# Reuse the already verified BettaFish runtime only with the exact core dependency lock.
+RUN test "$(sha256sum /app/backend/requirements.lock | cut -d ' ' -f 1)" = "185e5523b000d271df89bfe2bd38a073fb3c47b2fbc499e2d541c723082f3a6b"
+COPY backend /app/backend
+COPY adapters /app/adapters
+COPY scripts /app/scripts
+RUN chmod -R a+rX /app/backend /app/adapters /app/scripts
+USER 10001:10001

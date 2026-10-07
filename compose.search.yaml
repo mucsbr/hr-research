@@ -1,0 +1,14 @@
+# Optional managed search. Keep the existing app/data/Runner networks when merging.
+# The separate search deployment creates this internal bridge first.
+services:
+  api:
+    environment:
+      DISCOVERY_INTERNAL_SEARCH_URL: http://recruitment-search:8080/search
+      DISCOVERY_SEARCH_TIMEOUT_SECONDS: ${DISCOVERY_SEARCH_TIMEOUT_SECONDS:-15}
+    networks:
+      search_control: {}
+
+networks:
+  search_control:
+    external: true
+    name: ${DISCOVERY_SEARCH_CONTROL_NETWORK:-hr-intel-verify-20261005_search_control}

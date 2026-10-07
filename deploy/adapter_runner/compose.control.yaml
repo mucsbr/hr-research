@@ -1,0 +1,13 @@
+# Apply with this directory's compose.yaml. Requires Compose with !reset support.
+services:
+  broker:
+    ports: !reset []
+    networks:
+      default: {}
+      adapter_control:
+        aliases: [adapter-runner-broker]
+
+networks:
+  adapter_control:
+    external: true
+    name: ${ADAPTER_RUNNER_CONTROL_NETWORK:?prepare the dedicated Runner control network}

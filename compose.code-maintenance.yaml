@@ -1,0 +1,18 @@
+# Apply together with compose.yaml after the business source freeze.
+# The external network is created by deploy/adapter_runner/prepare_control_network.py.
+services:
+  api:
+    networks:
+      app: {}
+      data: {}
+      adapter_control: {}
+  worker:
+    networks:
+      app: {}
+      data: {}
+      adapter_control: {}
+
+networks:
+  adapter_control:
+    external: true
+    name: ${ADAPTER_RUNNER_CONTROL_NETWORK:?prepare the dedicated Runner control network}

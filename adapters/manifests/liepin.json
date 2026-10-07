@@ -1,0 +1,17 @@
+{
+  "kind": "liepin",
+  "version": "native-0.1",
+  "response_path_pattern": "search.*job|job.*search|joblist|job/list",
+  "list_paths": [["data", "jobCardList"], ["data", "data", "jobCardList"], ["data", "jobList"], ["data", "data", "jobList"]],
+  "fields": {
+    "id": [["job", "jobId"], ["jobId"], ["job", "id"]],
+    "title": [["job", "title"], ["job", "jobName"], ["jobName"], ["title"]],
+    "company": [["comp", "compName"], ["compInfo", "compName"], ["compName"]],
+    "company_id": [["comp", "compId"], ["compInfo", "compId"], ["compId"]],
+    "salary": [["job", "salary"], ["salary"]],
+    "location": [["job", "dq"], ["job", "city"], ["cityName"]],
+    "experience": [["job", "requireWorkYears"], ["requireWorkYears"]],
+    "education": [["job", "requireEduLevel"], ["requireEduLevel"]]
+  },
+  "detail_selectors": [".job-intro-content", ".job-intro-container", ".job-description"]
+}

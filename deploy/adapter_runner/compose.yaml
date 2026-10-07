@@ -1,0 +1,42 @@
+name: hr-adapter-runner-verify-20261005
+services:
+  runtime:
+    image: hr-adapter-runtime:verify-20261005
+    build:
+      context: .
+      target: runtime
+    profiles: [build-only]
+  broker:
+    image: hr-adapter-broker:verify-20261005
+    build:
+      context: .
+      target: broker
+    user: '65532:65532'
+    group_add: ['${RUNNER_DOCKER_GID:?set Docker socket group ID}']
+    environment:
+      RUNNER_TOKEN: ${RUNNER_TOKEN:?set independent runner token}
+      RUNNER_RUNTIME_IMAGE: ${RUNNER_RUNTIME_IMAGE:?set actual runtime sha256 image ID}
+      RUNNER_HOST_DATA_DIR: ${RUNNER_HOST_DATA_DIR:?set absolute dedicated host data directory}
+      RUNNER_DATA_DIR: /data
+      RUNNER_SCOPE: hr-adapter-runner-verify-20261005
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${RUNNER_HOST_DATA_DIR}:/data
+    ports:
+      - 127.0.0.1:18082:8090
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    cpus: 1
+    pids_limit: 64
+    init: true
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, python, -c, 'import os,urllib.request; urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:8090/v1/health", headers={"Authorization":"Bearer "+os.environ["RUNNER_TOKEN"]}), timeout=3)']
+      interval: 5s
+      timeout: 4s
+      start_period: 5s
+      retries: 12

@@ -1,0 +1,418 @@
+{
+  "case_set_version": "adapter-program-qa-1",
+  "scope": "Synthetic controlled parser/navigation change; not a real upstream upgrade",
+  "cases": [
+    {
+      "id": "old-list",
+      "operation": "parse_list",
+      "input": {
+        "protocol": "adapter-program/1",
+        "operation": "parse_list",
+        "kind": "boss",
+        "documents": [
+          {
+            "id": "json",
+            "type": "json",
+            "content": {
+              "zpData": {
+                "jobList": [
+                  {
+                    "encryptJobId": "job1",
+                    "jobName": "工程师",
+                    "brandName": "甲公司",
+                    "encryptBrandId": "acme"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "links": [],
+        "input_id": "input_ab78a37f9f89c559d20deb2412c892b874af33d80e916a8f2e52971c902da721"
+      },
+      "expected": {
+        "protocol": "adapter-program/1",
+        "input_id": "input_ab78a37f9f89c559d20deb2412c892b874af33d80e916a8f2e52971c902da721",
+        "operation": "parse_list",
+        "records": [
+          {
+            "row": {
+              "document_id": "json",
+              "pointer": "/zpData/jobList/0"
+            },
+            "fields": {
+              "id": {
+                "value": "job1",
+                "evidence": {
+                  "pointer": "/encryptJobId"
+                }
+              },
+              "title": {
+                "value": "工程师",
+                "evidence": {
+                  "pointer": "/jobName"
+                }
+              },
+              "company": {
+                "value": "甲公司",
+                "evidence": {
+                  "pointer": "/brandName"
+                }
+              },
+              "company_id": {
+                "value": "acme",
+                "evidence": {
+                  "pointer": "/encryptBrandId"
+                }
+              }
+            }
+          }
+        ],
+        "navigation": []
+      },
+      "role": "regression"
+    },
+    {
+      "id": "composite-id-list",
+      "operation": "parse_list",
+      "input": {
+        "protocol": "adapter-program/1",
+        "operation": "parse_list",
+        "kind": "boss",
+        "documents": [
+          {
+            "id": "json",
+            "type": "json",
+            "content": {
+              "zpData": {
+                "vacanciesV2": [
+                  {
+                    "position": {
+                      "key": "job:job1",
+                      "title": "工程师"
+                    },
+                    "company": {
+                      "name": "甲公司",
+                      "id": "acme"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "links": [],
+        "input_id": "input_05cdc8a08fe37f42e7dd0891e065e666e69c0f3c09acea580c3af5a369d24b9e"
+      },
+      "expected": {
+        "protocol": "adapter-program/1",
+        "input_id": "input_05cdc8a08fe37f42e7dd0891e065e666e69c0f3c09acea580c3af5a369d24b9e",
+        "operation": "parse_list",
+        "records": [
+          {
+            "row": {
+              "document_id": "json",
+              "pointer": "/zpData/vacanciesV2/0"
+            },
+            "fields": {
+              "id": {
+                "value": "job1",
+                "evidence": {
+                  "pointer": "/position/key",
+                  "start": 4,
+                  "end": 8
+                }
+              },
+              "title": {
+                "value": "工程师",
+                "evidence": {
+                  "pointer": "/position/title"
+                }
+              },
+              "company": {
+                "value": "甲公司",
+                "evidence": {
+                  "pointer": "/company/name"
+                }
+              },
+              "company_id": {
+                "value": "acme",
+                "evidence": {
+                  "pointer": "/company/id"
+                }
+              }
+            }
+          }
+        ],
+        "navigation": []
+      },
+      "role": "failure"
+    },
+    {
+      "id": "old-detail",
+      "operation": "parse_detail",
+      "input": {
+        "protocol": "adapter-program/1",
+        "operation": "parse_detail",
+        "kind": "boss",
+        "documents": [
+          {
+            "id": "dom",
+            "type": "html",
+            "content": "<div class=\"job-sec-text\"><p>负责平台研发</p></div>"
+          }
+        ],
+        "links": [],
+        "job": {
+          "id": "job1",
+          "title": "工程师"
+        },
+        "input_id": "input_2bf9816bbe92d498ea74dfac07091e5253163a79f169cee44eb873ed10a18a68"
+      },
+      "expected": {
+        "protocol": "adapter-program/1",
+        "input_id": "input_2bf9816bbe92d498ea74dfac07091e5253163a79f169cee44eb873ed10a18a68",
+        "operation": "parse_detail",
+        "row": {
+          "document_id": "dom",
+          "selector": ".job-sec-text"
+        },
+        "fields": {
+          "description": {
+            "value": "负责平台研发",
+            "evidence": {
+              "selector": ""
+            }
+          }
+        },
+        "navigation": []
+      },
+      "role": "regression"
+    },
+    {
+      "id": "moved-detail",
+      "operation": "parse_detail",
+      "input": {
+        "protocol": "adapter-program/1",
+        "operation": "parse_detail",
+        "kind": "boss",
+        "documents": [
+          {
+            "id": "dom",
+            "type": "html",
+            "content": "<div class=\"jd-v2\"><p>负责平台研发</p></div>"
+          }
+        ],
+        "links": [],
+        "job": {
+          "id": "job1",
+          "title": "工程师"
+        },
+        "input_id": "input_6306da1b5e66b43fcb2accc457709736e85ede2ad229f51f27e88383dd5407ab"
+      },
+      "expected": {
+        "protocol": "adapter-program/1",
+        "input_id": "input_6306da1b5e66b43fcb2accc457709736e85ede2ad229f51f27e88383dd5407ab",
+        "operation": "parse_detail",
+        "row": {
+          "document_id": "dom",
+          "selector": ".jd-v2"
+        },
+        "fields": {
+          "description": {
+            "value": "负责平台研发",
+            "evidence": {
+              "selector": ""
+            }
+          }
+        },
+        "navigation": []
+      },
+      "role": "failure"
+    },
+    {
+      "id": "scroll-navigation",
+      "operation": "navigation",
+      "input": {
+        "protocol": "adapter-program/1",
+        "operation": "navigation",
+        "kind": "boss",
+        "documents": [
+          {
+            "id": "dom",
+            "type": "html",
+            "content": "<div>公司招聘列表</div>"
+          }
+        ],
+        "links": [],
+        "input_id": "input_d389cc75395f7c84162794d335960e5ce9a4cc980f4e1785fca57f647f675017"
+      },
+      "expected": {
+        "protocol": "adapter-program/1",
+        "input_id": "input_d389cc75395f7c84162794d335960e5ce9a4cc980f4e1785fca57f647f675017",
+        "operation": "navigation",
+        "navigation": [
+          {
+            "type": "scroll",
+            "pixels": 500
+          },
+          {
+            "type": "wait",
+            "milliseconds": 100
+          }
+        ]
+      },
+      "role": "regression"
+    },
+    {
+      "id": "observed-next-navigation",
+      "operation": "navigation",
+      "input": {
+        "protocol": "adapter-program/1",
+        "operation": "navigation",
+        "kind": "boss",
+        "documents": [
+          {
+            "id": "dom",
+            "type": "html",
+            "content": "<div class=\"pagination\"><a data-program-link-id=\"link_d616edcf39fc275bf52189899d9dc09aaa6ed870e7287cf7cbc2c78d05445076\" href=\"https://www.zhipin.com/web/geek/job\">下一页</a></div>"
+          }
+        ],
+        "links": [
+          {
+            "id": "link_d616edcf39fc275bf52189899d9dc09aaa6ed870e7287cf7cbc2c78d05445076",
+            "purpose": "next",
+            "label": "下一页"
+          }
+        ],
+        "input_id": "input_fe7dddd4ab0431ca00bad4ed3060f56eab5e66b35a1ec720713bc81ddbe64e78"
+      },
+      "expected": {
+        "protocol": "adapter-program/1",
+        "input_id": "input_fe7dddd4ab0431ca00bad4ed3060f56eab5e66b35a1ec720713bc81ddbe64e78",
+        "operation": "navigation",
+        "navigation": [
+          {
+            "type": "follow",
+            "link_id": "link_d616edcf39fc275bf52189899d9dc09aaa6ed870e7287cf7cbc2c78d05445076"
+          },
+          {
+            "type": "wait",
+            "milliseconds": 100
+          }
+        ]
+      },
+      "role": "failure"
+    }
+  ],
+  "materials": {
+    "old-list": {
+      "kind": "boss",
+      "binding": {
+        "entry_url": "https://www.zhipin.com/gongsi/acme.html",
+        "external_company_id": "acme"
+      },
+      "identity": {
+        "name": "甲公司"
+      },
+      "page_url": "https://www.zhipin.com/web/geek/job?page=1",
+      "payload": {
+        "zpData": {
+          "jobList": [
+            {
+              "encryptJobId": "job1",
+              "jobName": "工程师",
+              "brandName": "甲公司",
+              "encryptBrandId": "acme"
+            }
+          ]
+        }
+      }
+    },
+    "composite-id-list": {
+      "kind": "boss",
+      "binding": {
+        "entry_url": "https://www.zhipin.com/gongsi/acme.html",
+        "external_company_id": "acme"
+      },
+      "identity": {
+        "name": "甲公司"
+      },
+      "page_url": "https://www.zhipin.com/web/geek/job?page=1",
+      "payload": {
+        "zpData": {
+          "vacanciesV2": [
+            {
+              "position": {
+                "key": "job:job1",
+                "title": "工程师"
+              },
+              "company": {
+                "name": "甲公司",
+                "id": "acme"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "old-detail": {
+      "kind": "boss",
+      "binding": {
+        "entry_url": "https://www.zhipin.com/gongsi/acme.html",
+        "external_company_id": "acme"
+      },
+      "identity": {
+        "name": "甲公司"
+      },
+      "page_url": "https://www.zhipin.com/job_detail/job1.html",
+      "job": {
+        "source_job_id": "job1",
+        "title": "工程师",
+        "url": "https://www.zhipin.com/job_detail/job1.html"
+      },
+      "html": "<div class=\"job-sec-text\"><p>负责平台研发</p></div>"
+    },
+    "moved-detail": {
+      "kind": "boss",
+      "binding": {
+        "entry_url": "https://www.zhipin.com/gongsi/acme.html",
+        "external_company_id": "acme"
+      },
+      "identity": {
+        "name": "甲公司"
+      },
+      "page_url": "https://www.zhipin.com/job_detail/job1.html",
+      "job": {
+        "source_job_id": "job1",
+        "title": "工程师",
+        "url": "https://www.zhipin.com/job_detail/job1.html"
+      },
+      "html": "<div class=\"jd-v2\"><p>负责平台研发</p></div>"
+    },
+    "scroll-navigation": {
+      "kind": "boss",
+      "binding": {
+        "entry_url": "https://www.zhipin.com/gongsi/acme.html",
+        "external_company_id": "acme"
+      },
+      "identity": {
+        "name": "甲公司"
+      },
+      "page_url": "https://www.zhipin.com/web/geek/job?page=1",
+      "html": "<div>公司招聘列表</div>"
+    },
+    "observed-next-navigation": {
+      "kind": "boss",
+      "binding": {
+        "entry_url": "https://www.zhipin.com/gongsi/acme.html",
+        "external_company_id": "acme"
+      },
+      "identity": {
+        "name": "甲公司"
+      },
+      "page_url": "https://www.zhipin.com/web/geek/job?page=1",
+      "html": "<div class=\"pagination\"><a rel=\"next\" href=\"?page=2\">下一页</a></div>"
+    }
+  }
+}

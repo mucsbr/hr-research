@@ -1,0 +1,69 @@
+name: hr-search-verify-20261005
+
+services:
+  core:
+    image: ghcr.io/searxng/searxng@sha256:76b0bf285aca014c7191fc4d9234c4bfb358624ac33d8883833d496c059ec072
+    user: '977:977'
+    environment:
+      SEARXNG_SECRET: ${SEARXNG_SECRET:?generate private search.env on the deployment host}
+      SEARXNG_BASE_URL: http://recruitment-search:8080/
+      SEARXNG_PORT: '8080'
+      GRANIAN_HOST: 0.0.0.0
+      GRANIAN_PORT: '8080'
+      GRANIAN_WORKERS: '1'
+      FORCE_OWNERSHIP: 'false'
+    volumes:
+      - ./settings.yml:/etc/searxng/settings.yml:ro
+      - search-cache:/var/cache/searxng
+    networks:
+      search_control:
+        aliases: [recruitment-search]
+      search_data: {}
+      egress: {}
+    depends_on:
+      valkey: {condition: service_healthy}
+    init: true
+    read_only: true
+    tmpfs: ['/tmp:size=96m,mode=1777']
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    cpus: 1
+    pids_limit: 128
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, python, -c, 'import urllib.request; r=urllib.request.urlopen("http://127.0.0.1:8080/healthz", timeout=3); assert r.status == 200']
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  valkey:
+    image: docker.io/valkey/valkey@sha256:48332870af354a799964c0012ae1194a0bf2bf894eb508f945810596dc2d8d11
+    user: valkey
+    command: [valkey-server, --save, '', --appendonly, 'no', --maxmemory, 32mb, --maxmemory-policy, allkeys-lru, --loglevel, warning]
+    networks: [search_data]
+    read_only: true
+    tmpfs: ['/tmp:size=16m,mode=1777']
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 64m
+    cpus: 0.25
+    pids_limit: 32
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, valkey-cli, ping]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+networks:
+  search_control:
+    external: true
+    name: ${DISCOVERY_SEARCH_CONTROL_NETWORK:-hr-intel-verify-20261005_search_control}
+  search_data:
+    internal: true
+  egress: {}
+
+volumes:
+  search-cache: {}

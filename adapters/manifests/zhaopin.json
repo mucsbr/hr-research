@@ -1,0 +1,22 @@
+{
+  "kind": "zhaopin",
+  "version": "native-0.1",
+  "reference": {
+    "url": "https://www.zhaopin.com/companydetail/jobs-CZ552912730/",
+    "observed_date": "2026-10-05",
+    "usage": "Verified public __INITIAL_STATE__.onlinePositions and jobDetail contracts; never evaluate webpage JavaScript."
+  },
+  "response_path_pattern": "position.*list|job.*list|company.*position|search.*job",
+  "list_paths": [["onlinePositions"], ["hotAndRecommendJobList"], ["data", "list"]],
+  "fields": {
+    "id": [["number"], ["job", "base", "jobNumber"]],
+    "title": [["name"], ["job", "base", "name"]],
+    "company": [["companyName"], ["company", "base", "companyName"]],
+    "company_id": [["companyNumber"], ["company", "base", "companyNumber"]],
+    "salary": [["salary60"], ["job", "base", "salary"]],
+    "location": [["workCity"], ["job", "base", "address"]],
+    "experience": [["workingExp"]],
+    "education": [["education"]]
+  },
+  "detail_selectors": [".describtion-card__detail-content"]
+}

@@ -1,0 +1,38 @@
+# Official image/source revision is pinned in compose.yaml and README.md.
+# Search results are evidence candidates, never verified company identity.
+use_default_settings:
+  engines:
+    keep_only: [bing]
+
+general:
+  debug: false
+  instance_name: HR recruitment entry search
+
+search:
+  default_lang: zh-CN
+  autocomplete: ''
+  safe_search: 0
+  formats: [html, json]
+
+server:
+  base_url: http://recruitment-search:8080/
+  limiter: false
+  public_instance: false
+  image_proxy: false
+  method: GET
+
+valkey:
+  url: valkey://valkey:6379/0
+
+outgoing:
+  request_timeout: 8.0
+  max_request_timeout: 10.0
+  pool_connections: 10
+  pool_maxsize: 5
+
+engines:
+  - name: bing
+    engine: bing
+    base_url: https://cn.bing.com
+    disabled: false
+    timeout: 8.0

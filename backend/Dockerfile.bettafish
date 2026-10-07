@@ -1,0 +1,27 @@
+# Optional ReportEngine runtime. Build the core backend image first.
+ARG BASE_IMAGE=hr-intelligence-backend:local
+FROM ${BASE_IMAGE}
+USER root
+ARG PIP_INDEX_URL=https://pypi.org/simple
+ARG BETTAFISH_FETCH_PROXY=
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+COPY backend/bettafish-requirements.lock /app/backend/bettafish-requirements.lock
+RUN python -m venv /opt/bettafish-venv \
+    && /opt/bettafish-venv/bin/python -m pip install --no-cache-dir --index-url "$PIP_INDEX_URL" -r /app/backend/bettafish-requirements.lock
+RUN git init -q /opt/bettafish-src \
+    && git -C /opt/bettafish-src -c "http.proxy=$BETTAFISH_FETCH_PROXY" fetch --depth=1 https://github.com/666ghj/BettaFish.git b67928ff1ce515dd7672408221fb1e9500d0972d \
+    && git -C /opt/bettafish-src checkout -q --detach b67928ff1ce515dd7672408221fb1e9500d0972d \
+    && chown -R 10001:10001 /opt/bettafish-src \
+    && chmod -R a+rX /opt/bettafish-venv /opt/bettafish-src
+COPY backend /app/backend
+COPY adapters /app/adapters
+COPY scripts/verify_bettafish_upstream.py /app/scripts/verify_bettafish_upstream.py
+RUN chmod -R a+rX /app/backend /app/adapters /app/scripts
+ENV BETTAFISH_REPO_DIR=/opt/bettafish-src \
+    BETTAFISH_PYTHON=/opt/bettafish-venv/bin/python \
+    BETTAFISH_REVISION=b67928ff1ce515dd7672408221fb1e9500d0972d \
+    BETTAFISH_LICENSE_CONFIRMED=false \
+    GIT_OPTIONAL_LOCKS=0
+USER 10001:10001

@@ -1,0 +1,109 @@
+{
+  "kind": "51job",
+  "version": "native-0.1",
+  "reference": {
+    "url": "https://js.51jobcdn.com/jbs-www/www/www-CT59qKpc.js",
+    "observed_date": "2026-10-05",
+    "usage": "Public official frontend jobListItemVO fields and resultbody.items; source read only, never execute external CLI. Live company endpoints encountered WAF; authenticated end-to-end collection remains unverified.",
+    "sha256": "115a334328ef80022f200b4aabaf91f82eb570295bc8789d9184e4ce634fc4b4"
+  },
+  "response_path_pattern": "job-mini-detail|job-list|joblist|job/search",
+  "list_paths": [
+    [
+      "resultbody",
+      "items"
+    ],
+    [
+      "resultbody",
+      "job",
+      "items"
+    ]
+  ],
+  "fields": {
+    "id": [
+      [
+        "jobListItemVO",
+        "jobId"
+      ],
+      [
+        "jobId"
+      ]
+    ],
+    "title": [
+      [
+        "jobListItemVO",
+        "jobName"
+      ],
+      [
+        "jobName"
+      ]
+    ],
+    "company": [
+      [
+        "jobListItemVO",
+        "companyName"
+      ],
+      [
+        "companyName"
+      ]
+    ],
+    "company_id": [
+      [
+        "jobListItemVO",
+        "coId"
+      ],
+      [
+        "coId"
+      ]
+    ],
+    "salary": [
+      [
+        "jobListItemVO",
+        "provideSalaryString"
+      ],
+      [
+        "provideSalaryString"
+      ]
+    ],
+    "location": [
+      [
+        "jobListItemVO",
+        "jobAreaString"
+      ],
+      [
+        "jobAreaString"
+      ]
+    ],
+    "experience": [
+      [
+        "jobListItemVO",
+        "workYearString"
+      ],
+      [
+        "workYearString"
+      ]
+    ],
+    "education": [
+      [
+        "jobListItemVO",
+        "degreeString"
+      ],
+      [
+        "degreeString"
+      ]
+    ],
+    "url_area": [
+      [
+        "jobListItemVO",
+        "hrefAreaPinYin"
+      ],
+      [
+        "hrefAreaPinYin"
+      ]
+    ]
+  },
+  "detail_selectors": [
+    ".job_msg",
+    ".job-detail .job-description"
+  ]
+}
