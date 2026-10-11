@@ -411,11 +411,15 @@ def dashboard(db: Db, user: CurrentUser):
 
 @router.get("/system/status")
 def system_status(db: Db, user: CurrentUser):
-    settings = get_settings()
+    from app.model_settings import effective_configuration, ModelConfigurationError
+    try:
+        settings, _, _ = effective_configuration(db)
+    except ModelConfigurationError as error:
+        raise HTTPException(503, str(error)) from None
     db.execute(text("SELECT 1"))
     return {
         "database": "ready",
-        "llm": {"configured": bool(settings.llm_api_key.get_secret_value()),
+        "llm": {"configured": bool(settings.llm_base_url and settings.llm_model and settings.llm_api_key.get_secret_value()),
                 "model": settings.llm_model, "daily_request_limit": settings.llm_daily_request_limit,
                 "task_call_limit": settings.llm_task_call_limit,
                 "max_output_tokens": settings.llm_max_output_tokens,

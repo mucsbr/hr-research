@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -52,9 +52,10 @@ class Settings(BaseSettings):
     adapter_runner_runtime_digest: str = ""
     llm_base_url: str = ""
     llm_api_key: SecretStr = SecretStr("")
-    llm_model: str = "glm-5.3"
-    llm_reasoning_effort: Literal["low", "high", "max"] = "low"
-    llm_fallback_model: str = "deepseek-flash"
+    llm_model: str = ""
+    llm_reasoning_effort: Literal["none", "minimal", "low", "medium", "high", "max"] | None = None
+    llm_output_token_parameter: Literal["max_tokens", "max_completion_tokens"] = "max_tokens"
+    llm_fallback_model: str = ""
     llm_daily_request_limit: int = 12
     llm_task_call_limit: int = 3
     llm_max_output_tokens: int = 1200
@@ -76,6 +77,11 @@ class Settings(BaseSettings):
     smtp_security: Literal["starttls", "ssl"] = "starttls"
     notification_allowed_hosts: str = ""
     notification_timeout_seconds: int = 15
+
+    @field_validator("llm_reasoning_effort", mode="before")
+    @classmethod
+    def optional_reasoning(cls, value):
+        return value or None
 
 
 @lru_cache

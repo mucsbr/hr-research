@@ -22,6 +22,7 @@ from app import adapter_code_models  # noqa: F401
 from app import adapter_runtime_models  # noqa: F401
 from app import retention_models  # noqa: F401
 from app import probe_models  # noqa: F401
+from app import model_settings  # noqa: F401
 
 
 @pytest.fixture(scope="session")
@@ -34,6 +35,9 @@ def engine():
         "APP_ENV": "test",
         "LLM_API_KEY": "unit-test-not-a-real-key",
         "LLM_BASE_URL": "https://models.example.invalid/v1",
+        "LLM_MODEL": "glm-5.3",  # Explicit Mock fixture, never a product allowlist.
+        "LLM_FALLBACK_MODEL": "deepseek-flash",
+        "LLM_REASONING_EFFORT": "low",
         "LLM_DAILY_REQUEST_LIMIT": "12",  # Mock requests only; APP_ENV=test blocks real model transport.
         "ADMIN_PASSWORD": "unit-test-password-only",
         "APP_SECRET": "unit-test-only-signing-secret-" * 3,

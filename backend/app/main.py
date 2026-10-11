@@ -23,6 +23,7 @@ from app.recruitment_management_api import router as recruitment_management_rout
 from app.retention_api import router as retention_router
 from app.security import bootstrap_admin
 from app.probe_api import router as probe_router
+from app.model_settings import router as model_settings_router
 
 
 @asynccontextmanager
@@ -77,6 +78,7 @@ app.include_router(news_router)
 app.include_router(recruitment_management_router)
 app.include_router(retention_router)
 app.include_router(probe_router)
+app.include_router(model_settings_router)
 
 
 @app.get("/api/v1/health")

@@ -15,7 +15,7 @@ from app.adapter_code_package import (
 )
 from app.adapter_maintenance import ensure_registry
 from app.collection import CollectionError
-from app.config import get_settings
+from app.model_settings import get_model_settings
 from app.db import session_factory
 from app.llm import ModelError, ModelGateway
 from app.maintenance_models import AdapterRegistry, AdapterRelease
@@ -196,7 +196,7 @@ def check_proposal_active(db, proposal_id, *, statuses=None):
 
 def proposal_messages(proposal, *, max_input_chars=None, return_metadata=False):
     """Select explicit bounded context. Omitted bytes remain in immutable proposal evidence."""
-    maximum = max_input_chars if max_input_chars is not None else get_settings().llm_max_input_chars
+    maximum = max_input_chars if max_input_chars is not None else get_model_settings().llm_max_input_chars
     source = proposal.source_snapshot
     upstream = {key: source[key] for key in ("repository", "base_commit", "target_commit", "snapshot_sha256") if key in source}
     system = ("输出JSON增量补丁，优先{edits:[{path,old,new}],dependencies?:[name==version],new_files?:{lib/helper.py:源码}}。"

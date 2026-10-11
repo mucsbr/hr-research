@@ -17,6 +17,7 @@ import ProbeLoginView from './ProbeLoginView'
 import type { ProbeLogin } from './ProbeLoginView'
 import { stateTag } from './ModuleUI'
 import RetentionSettings, { ReportRetentionNotice, ReportRetentionState } from './RetentionSettings'
+import ModelSettingsPanel from './ModelSettingsPanel'
 const SentimentPage = lazy(() => import('./SentimentPage'))
 const NotificationsPage = lazy(() => import('./NotificationsPage'))
 const NewsPage = lazy(() => import('./NewsPage'))
@@ -462,14 +463,7 @@ function SettingsPage() {
     <PageTitle eyebrow="WORKSPACE SETTINGS" title="运行设置" description="查看连接状态与模型调用预算。密钥不会展示在页面中。" />
     <LoadError error={info.error} />
     <LoadError error={bridge.error} />
-    <div className="two-columns"><Panel title="模型与成本控制"><Descriptions column={1} items={[
-      { label: '连接配置', children: data?.llm.configured ? <Tag color="green">已配置</Tag> : <Tag>待配置</Tag> },
-      { label: '优先模型', children: data?.llm.model || '—' },
-      { label: '每日请求上限', children: data?.llm.daily_request_limit ?? '—' },
-      { label: '单任务调用上限', children: data?.llm.task_call_limit ?? '—' },
-      { label: '单次输出上限', children: data?.llm.max_output_tokens ? data.llm.max_output_tokens + ' tokens' : '—' },
-      { label: '今日调用记录', children: data?.llm.calls_today ?? '—' },
-    ]} /><div className="note-box">常规采集、历史比较和页面刷新不调用模型。生成分析前检查预算；超时不会自动重试或切换模型。</div></Panel>
+    <div className="two-columns"><ModelSettingsPanel isAdmin={isAdmin} summary={data?.llm} />
     <Panel title="平台连接"><Descriptions column={1} items={[
       { label: '数据库', children: status(data?.database || 'unknown') },
       { label: '显示时区', children: data?.timezone || '—' },

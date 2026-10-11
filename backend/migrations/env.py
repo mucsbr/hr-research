@@ -17,6 +17,7 @@ from app import adapter_code_models  # noqa: F401
 from app import adapter_runtime_models  # noqa: F401
 from app import retention_models  # noqa: F401
 from app import probe_models  # noqa: F401
+from app import model_settings  # noqa: F401
 
 config = context.config
 if config.config_file_name:

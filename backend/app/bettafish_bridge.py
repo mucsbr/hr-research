@@ -108,8 +108,8 @@ def static_report_html(html):
 
 class BettaFishBridge:
     def __init__(self, settings=None):
-        from app.config import get_settings
-        self.settings = settings or get_settings()
+        from app.model_settings import get_model_settings
+        self.settings = settings or get_model_settings()
 
     def health(self):
         configured = bool(getattr(self.settings, "bettafish_repo_dir", "")

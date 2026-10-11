@@ -11,6 +11,7 @@ from sqlalchemy import func, select, text
 from app.config import get_settings
 from app.db import session_factory
 from app.models import ModelCall
+from app.model_settings import effective_configuration, get_model_settings, ModelConfigurationError
 
 
 class ModelError(Exception):
@@ -33,11 +34,24 @@ def shanghai_day_start():
     return local.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(timezone.utc)
 
 
-def reserve_call(purpose, task_id, input_chars, max_tokens, model):
-    settings = get_settings()
+def reserve_call(purpose, task_id, input_chars, max_tokens, model, settings=None):
     with session_factory()() as db:
         db.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"),
                    {"key": "llm-global-budget"})
+        try:
+            current = effective_configuration(db)[0]
+        except ModelConfigurationError as error:
+            raise ModelError("invalid_configuration", str(error)) from None
+        if not current.llm_base_url or not current.llm_model or not current.llm_api_key.get_secret_value():
+            raise ModelError("not_configured", "模型连接未配置或已暂停，未发送请求")
+        if settings and any(getattr(settings, name) != getattr(current, name) for name in (
+            "llm_base_url", "llm_api_key", "llm_model", "llm_fallback_model",
+            "llm_reasoning_effort", "llm_output_token_parameter", "llm_timeout_seconds",
+        )):
+            raise ModelError("configuration_changed", "模型配置已变化，请重新发起；未发送请求")
+        if input_chars > current.llm_max_input_chars or max_tokens > current.llm_max_output_tokens:
+            raise ModelError("configuration_changed", "单次模型预算已变化，请重新发起；未发送请求")
+        settings = current
         count = db.scalar(select(func.count()).select_from(ModelCall).where(
             ModelCall.created_at >= shanghai_day_start()))
         if count >= settings.llm_daily_request_limit:
@@ -77,7 +91,11 @@ class ModelGateway:
         settings = get_settings()
         if settings.app_env == "test" and self.transport is None:
             raise ModelError("test_network_disabled", "自动化测试禁止连接真实模型服务")
-        if not settings.llm_base_url or not settings.llm_api_key.get_secret_value():
+        try:
+            settings = get_model_settings(settings)
+        except ModelConfigurationError as error:
+            raise ModelError("invalid_configuration", str(error)) from None
+        if not settings.llm_base_url or not settings.llm_api_key.get_secret_value() or not settings.llm_model:
             raise ModelError("not_configured", "模型连接未配置")
         if not messages or any(not isinstance(m.get("content"), str) for m in messages):
             raise ModelError("invalid_input", "模型输入必须为文本消息")
@@ -91,10 +109,10 @@ class ModelGateway:
                       settings.llm_max_output_tokens)
         if maximum < 1:
             raise ModelError("invalid_budget", "输出预算必须为正数")
-        call_id = reserve_call(purpose, task_id, size, maximum, selected)
+        call_id = reserve_call(purpose, task_id, size, maximum, selected, settings)
         payload = {"model": selected, "messages": messages, "stream": stream,
-                   "max_tokens": maximum}
-        if selected.startswith(("glm-5.3", "glm-5.2")):
+                   settings.llm_output_token_parameter: maximum}
+        if settings.llm_reasoning_effort:
             payload["reasoning_effort"] = settings.llm_reasoning_effort
         if stream:
             payload["stream_options"] = {"include_usage": True}
@@ -103,6 +121,7 @@ class ModelGateway:
         try:
             with httpx.Client(
                 timeout=settings.llm_timeout_seconds, trust_env=False,
+                follow_redirects=False,
                 transport=self.transport,
                 headers={"Authorization": "Bearer " + settings.llm_api_key.get_secret_value()},
             ) as client:

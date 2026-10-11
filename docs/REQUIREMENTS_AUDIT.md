@@ -100,6 +100,7 @@
 | U35 | 真实模型生成可通过验证的代码修复 | unverified | 唯一glm-5.3请求failed/output_truncated；无候选、执行、发布或held-out，未重试 | 既有Mock/受控工程E2E及711全量不能替代真实修复质量；不为取得成功扩大已消耗的一次预算 |
 | U36 | 舆情任务表单来源与时间范围 | completed | SentimentPage补既有API的source_ids/time_from/time_to；7组实际构建浏览器场景、61个200/202、6次仅内存提交，跨时区/主体切换/无来源分析/非法预算通过 | UI请求与状态验证不是社交账号采集；711远端范围页只读8API200/JS0/业务写0已通过 |
 | U37 | Win/Mac可下载探针、主动注册/通道、Chrome登录引导、同浏览器/出口采集 | incomplete | 0.1.0三包实际发布；设备/配对/profile/命令与回执、主动WSS/轮询、Chrome引导、招聘/舆情提供器、Web设备与绑定、内部CA正常TLS已部署；801后端、Node5项、隔离真实双通道、正式下载SHA及两页只读核验通过，见 [交付记录](PROBE_IMPLEMENTATION.md) | 原生Win/Mac、真实Chrome/账号/同出口采集未验收；登录确认只saved，独立只读确认、升级提示及离线通知整合有缺口。用户接受自签HTTPS及未签名包，签名不是本轮阻塞；模拟浏览器不替代原生/站点 |
+| U38 | Web自由配置Base URL、API Key、模型与限额 | completed | 管理员表单/持久加密/修订CAS、统一网关及Worker读取、实际QA保存/换模型/留空保留、正式页面只读通过；主改动816全量，后续预算/看门狗另以专项验证；13表及4条调用不变，真实模型请求0，见 [模型配置](MODEL_CONFIGURATION.md) | 当前为全局Chat Completions兼容连接；独立角色model_profiles、多个供应商连接及非兼容原生协议未实现。真实新供应商连通/质量未验收；不把Mock当真实通过 |
 
 ## PLAN 19 各阶段工作与交付逐项核对
 

@@ -15,7 +15,7 @@ from app.adapter_code_upstream import FIXED_CODE_UPSTREAMS, sample_upstream_diff
 from app.adapter_maintenance import activate_release, ensure_registry
 from app.auto_maintenance_models import AdapterRepairIncident
 from app.collection import CollectionError
-from app.config import get_settings
+from app.model_settings import get_model_settings
 from app.db import session_factory
 from app.maintenance_models import AdapterMaintenanceRun, AdapterRegistry, AdapterRelease
 from app.models import Company, CompanyRun, JobObservation, JobSourceRecord, ModelCall, RunBatch, SourceAccount, SourceBinding, SourceRun, Subject, TaskEvent, TaskRun, User, now
@@ -351,7 +351,7 @@ def tick_code_maintenance(proposal_id, *, client=None, gateway=None):
             state = proposal.status
             if state == "generating":
                 task = db.get(TaskRun, proposal.task_id)
-                if task.heartbeat_at and task.heartbeat_at < now() - timedelta(seconds=get_settings().llm_timeout_seconds + 60):
+                if task.heartbeat_at and task.heartbeat_at < now() - timedelta(seconds=get_model_settings().llm_timeout_seconds + 60):
                     proposal.status, proposal.error_code, task.status = "unknown", "generation_interrupted", "failed"
                     _sync_incident(db, proposal)
                     db.commit()
