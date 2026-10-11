@@ -40,3 +40,9 @@ services:
       timeout: 4s
       start_period: 5s
       retries: 12
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${RUNNER_NETWORK_SUBNET:-172.16.242.0/24}

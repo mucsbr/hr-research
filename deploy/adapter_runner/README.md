@@ -146,3 +146,5 @@ python3 verify_remote.py
 使用根目录 `compose.code-maintenance.yaml` 与本目录 `compose.control.yaml`，将 API/Worker 和独立 Broker 接到专用 internal bridge。Broker 仍是独立高权限服务，业务服务不获得 Docker socket；最终覆盖文件移除 Broker 的宿主端口。
 
 `prepare_control_network.py` 只准备网络、验证认证并在远端私有文件间配置变量，不更新业务镜像或迁移。主工程冻结并部署后，再执行 `verify_control_network.py` 从真实 API/Worker 内验证第一方客户端可达。完整步骤与阶段证据见 [CODE_RUNNER_DEPLOYMENT.md](../../docs/CODE_RUNNER_DEPLOYMENT.md)。
+
+2026-10-11 起出网网络默认 `172.16.242.0/24`，控制网络默认 `172.16.243.0/24`；准备脚本读取主栈的 `ADAPTER_RUNNER_CONTROL_SUBNET`，拒绝复用不同子网。创建前核对所有宿主路由与 Docker 网络，不能自动分配到 `192.168.*` 或 `10.255.*`。见 [网络部署约定](../NETWORKING.md)。

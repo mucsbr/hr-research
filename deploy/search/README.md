@@ -27,10 +27,15 @@
 创建控制网络前核对名称没有被其他项目使用，并设置 `org.hr-research.search-control.owner=hr-intel-verify-20261005` 所有权标签。随后执行：
 
 ```sh
+docker network create --driver bridge --internal --subnet 172.16.246.0/24 \
+  --label org.hr-research.search-control.owner=hr-intel-verify-20261005 \
+  hr-intel-verify-20261005_search_control
 docker compose --env-file search.env config --quiet
 docker compose --env-file search.env up -d --wait
 docker compose --env-file search.env exec -T core python -B - --execute < verify_search.py
 ```
+
+2026-10-11 起固定小范围 `172.16.*` 子网；创建前检查宿主机 LAN/VPN 路由和已有 Docker 网络，不能只依赖 Docker 自动选址。上面的控制子网必须与私有配置的 `DISCOVERY_SEARCH_CONTROL_SUBNET` 一致；已有网络还需核对 IPAM、internal 和 owner，不重复创建或删除有成员的网络。完整七网段及恢复流程见 [网络部署约定](../NETWORKING.md)。本地 Conda/SSH 隧道章节仅为历史，不再启动本机环境。
 
 `verify_search.py` 默认只输出计划；`--execute` 只做一次健康读取和一次公开公司查询，输出真实原始 JSON 与摘要，没有候选站点读取、数据库写入或模型调用。搜索引擎失败、HTTP 错误、空结果必须分别记录；健康检查通过不等同于搜索可用。
 

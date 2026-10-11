@@ -28,6 +28,7 @@ def main():
             "RUNNER_RUNTIME_IMAGE": "sha256:" + "0" * 64,
             "RUNNER_HOST_DATA_DIR": str(data),
             "RUNNER_DOCKER_GID": str(gid),
+            "RUNNER_NETWORK_SUBNET": "172.16.242.0/24",
         }
         with env.open("x") as output:
             os.chmod(env, 0o600)

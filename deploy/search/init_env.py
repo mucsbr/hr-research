@@ -15,6 +15,9 @@ def main():
     with os.fdopen(descriptor, "w") as stream:
         stream.write("SEARXNG_SECRET=" + secrets.token_hex(32) + "\n")
         stream.write("DISCOVERY_SEARCH_CONTROL_NETWORK=hr-intel-verify-20261005_search_control\n")
+        stream.write("DISCOVERY_SEARCH_CONTROL_SUBNET=172.16.246.0/24\n")
+        stream.write("SEARCH_DATA_NETWORK_SUBNET=172.16.244.0/24\n")
+        stream.write("SEARCH_EGRESS_NETWORK_SUBNET=172.16.245.0/24\n")
         stream.flush()
         os.fsync(stream.fileno())
     print(json.dumps({"private_config_created": True, "path": str(path), "secret_printed": False}))

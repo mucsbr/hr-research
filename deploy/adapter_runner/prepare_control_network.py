@@ -2,6 +2,7 @@
 
 import argparse
 import hmac
+import ipaddress
 import json
 import os
 from pathlib import Path
@@ -159,6 +160,13 @@ def main():
         ]
         baseline_path.write_text(json.dumps(outside, indent=2))
     network = project + "_runner_control"
+    subnet = str(
+        ipaddress.IPv4Network(
+            main_values.get("ADAPTER_RUNNER_CONTROL_SUBNET", "172.16.243.0/24")
+        )
+    )
+    if not ipaddress.IPv4Network(subnet).subnet_of(ipaddress.IPv4Network("172.16.0.0/12")):
+        raise RuntimeError("Runner control subnet must stay within private 172.16.0.0/12")
     existing = command(
         ["docker", "network", "ls", "--filter", "name=^" + network + "$", "--format", "{{.ID}}"]
     ).split()
@@ -168,9 +176,12 @@ def main():
             not spec["Internal"]
             or spec["Driver"] != "bridge"
             or spec.get("Labels", {}).get(LABEL) != project
+            or [item.get("Subnet") for item in spec.get("IPAM", {}).get("Config", [])]
+            != [subnet]
         ):
             raise RuntimeError(
-                "Refusing an existing network without this project's ownership and isolation"
+                "Refusing an existing network with different ownership, isolation or subnet; "
+                "stop this project's services and recreate only its unused network"
             )
     else:
         command(
@@ -181,6 +192,8 @@ def main():
                 "--driver",
                 "bridge",
                 "--internal",
+                "--subnet",
+                subnet,
                 "--label",
                 LABEL + "=" + project,
                 network,

@@ -184,9 +184,16 @@ services:
       retries: 10
 
 networks:
-  app: {}
+  # Pin small, separate ranges; Docker's automatic pool may overlap the LAN/VPN.
+  app:
+    ipam:
+      config:
+        - subnet: ${APP_NETWORK_SUBNET:-172.16.240.0/24}
   data:
     internal: true
+    ipam:
+      config:
+        - subnet: ${DATA_NETWORK_SUBNET:-172.16.241.0/24}
 
 volumes:
   postgres-data: {}

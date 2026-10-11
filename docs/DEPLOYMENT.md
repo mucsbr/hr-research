@@ -1,6 +1,6 @@
 # Docker 部署与隔离验证
 
-Docker 是服务器交付方式。本机开发和 Python 测试仍使用 `hr-research-dev` Conda 环境，不在没有 Docker 的本机调用、安装或启动 Docker。本文件中的 `docker` 命令仅在具备 Docker 的部署服务器执行。
+Docker 是服务器交付方式。按用户最新要求，本机只编辑源码，不再启动应用、测试环境或 Docker；运行和测试均在授权远端的项目隔离环境。本文件中的 `docker` 命令仅在授权部署服务器执行。容器网段必须明确设置且检查路由，见 [网络部署约定](../deploy/NETWORKING.md)。
 
 ## 交付组成
 
