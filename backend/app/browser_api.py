@@ -49,6 +49,9 @@ def start_login(account_id: uuid.UUID, db: Db, user: AdminUser):
     account = db.get(SourceAccount, account_id)
     if not account:
         raise HTTPException(404, "账号不存在")
+    from app.probe_service import snapshot_for_account
+    if snapshot_for_account(db, account_id):
+        raise HTTPException(409, "该账号使用桌面探针，请在绑定设备的Chrome中登录")
     try:
         return visible(login_manager.start(account_id, account.kind, user.id))
     except BrowserSessionError as exc:

@@ -315,7 +315,7 @@ def _execute_company(identifier):
                         return
                     source_run = db.get(SourceRun, source_run_id)
                     source_run.status = code if code in {
-                        "waiting_login", "waiting_verification", "waiting_account", "cancelled"
+                        "waiting_login", "waiting_verification", "waiting_account", "waiting_device", "cancelled"
                     } else "failed"
                     if source_run.status == "failed" and (source_run.counts or {}).get("observed", 0) > 0:
                         source_run.status, source_run.coverage = "partial", "partial"
@@ -384,6 +384,8 @@ def _execute_company(identifier):
                 task.status = "waiting_verification"
             elif "waiting_account" in states:
                 task.status = "waiting_account"
+            elif "waiting_device" in states:
+                task.status = "waiting_device"
             else:
                 task.status = "failed"
             issues = [source for source in runs if source.error_message]

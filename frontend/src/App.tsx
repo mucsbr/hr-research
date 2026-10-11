@@ -13,6 +13,8 @@ import {
 import { beijingCalendarDate, beijingDateTime } from './date'
 import { api, ApiError, IdempotentActions, post } from './api'
 import LoginSessionView from './LoginSessionView'
+import ProbeLoginView from './ProbeLoginView'
+import type { ProbeLogin } from './ProbeLoginView'
 import { stateTag } from './ModuleUI'
 import RetentionSettings, { ReportRetentionNotice, ReportRetentionState } from './RetentionSettings'
 const SentimentPage = lazy(() => import('./SentimentPage'))
@@ -23,6 +25,7 @@ const AdminSettings = lazy(() => import('./AdminSettings'))
 const RecruitmentAnalytics = lazy(() => import('./RecruitmentAnalytics'))
 const AssistantPage = lazy(() => import('./AssistantPage'))
 const MaintenancePage = lazy(() => import('./MaintenancePage'))
+const DevicesPage = lazy(() => import('./DevicesPage'))
 import type {
   Change, Company, Dashboard, Job, JobDetail, LoginSession, Plan, Report, Source, SourceAccount, SystemStatus, Task, TaskDetail,
 } from './api'
@@ -32,6 +35,7 @@ const labels: Record<string, string> = {
   failed: '失败', cancelled: '已取消', blocked_configuration: '待配置',
   waiting_login: '待登录', waiting_verification: '待验证', unknown: '待检查',
   waiting_account: '等待账号空闲', verification_required: '需要人工验证',
+  waiting_device: '等待采集设备',
   ready: '可用', observed: '已观察到', suspected_removed: '疑似下架',
   saved: '会话已保存 · 待验证', logged_out: '未登录', expired: '已失效',
   complete: '范围完整', first_seen: '首次发现', baseline_seen: '基线采集',
@@ -191,9 +195,16 @@ function Sources() {
   const [editingSource, setEditingSource] = useState<Source | null>(null)
   const [accountVisible, setAccountVisible] = useState(false), [accountForm] = Form.useForm()
   const [loginSession, setLoginSession] = useState<LoginSession | null>(null)
+  const [probeLogin, setProbeLogin] = useState<ProbeLogin | null>(null)
+  const probeProfiles = useQuery({ queryKey: ['probe-profiles'], queryFn: () => api<{ id: string; device_name: string; name: string; enabled: boolean }[]>('/probes/profiles') })
   const [opening, setOpening] = useState<string | null>(null)
+  const [showArchivedSources, setShowArchivedSources] = useState(false)
+  const archivedCompanies = useQuery({ queryKey: ['companies', 'archived'], queryFn: () => api<Company[]>('/companies?archived=true'), enabled: showArchivedSources })
   const accounts = useQuery({ queryKey: ['source-accounts'], queryFn: () => api<SourceAccount[]>('/source-accounts') })
-  const companyNames = Object.fromEntries((companies.data || []).map(c => [c.id, c.name]))
+  const companyNames = Object.fromEntries([...(companies.data || []), ...(archivedCompanies.data || [])].map(c => [c.id, c.name]))
+  const activeCompanyIds = new Set((companies.data || []).map(c => c.id))
+  const visibleSources = (list.data || []).filter(source => showArchivedSources || activeCompanyIds.has(source.company_id))
+  const sourceKind = Form.useWatch('kind', form) || editingSource?.kind || 'careers'
   const add = useMutation({
     mutationFn: (v: { company_id: string; kind: string; entry_url: string; account_id?: string; external_company_id?: string; enabled?: boolean }) => editingSource
       ? api('/source-bindings/' + editingSource.id, { method: 'PATCH', body: JSON.stringify({ entry_url: v.entry_url, account_id: v.account_id || null, external_company_id: v.external_company_id || null, enabled: v.enabled }) })
@@ -204,55 +215,65 @@ function Sources() {
   })
   const addAccount = useMutation({
     mutationFn: (v: { kind: string; name: string }) => post('/source-accounts', v),
-    onSuccess: () => { setAccountVisible(false); accountForm.resetFields(); cache.invalidateQueries({ queryKey: ['source-accounts'] }) },
+    onSuccess: (_, values) => { setAccountVisible(false); accountForm.resetFields(); cache.invalidateQueries({ queryKey: ['source-accounts'] }); message.success(`账号记录已创建，请在下方点击“登录${labels[values.kind] || values.kind}”完成认证`) },
     onError: (e: Error) => message.error(e.message),
   })
   async function openLogin(id: string) {
     setOpening(id)
-    try { setLoginSession(await post<LoginSession>('/source-accounts/' + id + '/login-sessions')) }
+    try {
+      if (accounts.data?.find(a => a.id === id)?.probe) setProbeLogin(await post<ProbeLogin>('/probes/accounts/' + id + '/login'))
+      else setLoginSession(await post<LoginSession>('/source-accounts/' + id + '/login-sessions'))
+    }
     catch (e) { message.error((e as Error).message) }
     finally { setOpening(null) }
   }
   return <>
     <PageTitle eyebrow="DATA CONNECTIONS" title="数据源与登录" description="管理来源入口与独立账号会话，需要登录时由你完成。"
-      action={<Space><Button onClick={() => setAccountVisible(true)}>添加账号</Button><Button type="primary" icon={<Plus size={16} />} onClick={() => { setEditingSource(null); form.resetFields(); setVisible(true) }}>绑定招聘来源</Button></Space>} />
-    <LoadError error={list.error} />
-    <Panel title="招聘来源"><Table rowKey="id" dataSource={list.data} loading={list.isPending} columns={[
-      { title: '公司', dataIndex: 'company_id', render: (v: string) => companyNames[v] || v },
+      action={<Space><Button onClick={() => setAccountVisible(true)}>添加平台账号</Button><Button type="primary" icon={<Plus size={16} />} onClick={() => { setEditingSource(null); form.resetFields(); setVisible(true) }}>绑定招聘来源</Button></Space>} />
+    <Alert type="info" showIcon style={{ marginBottom: 20 }} message="需要登录的平台推荐使用桌面探针"
+      description="先到“采集设备”下载并配对探针，在设备的Chrome中登录。下方账号绑定该采集浏览器后，招聘和舆情都复用同一个本机登录环境；同平台账号可用于多家公司来源。" />
+    <LoadError error={list.error || companies.error || archivedCompanies.error || accounts.error} />
+    <Panel title="招聘来源" extra={<Space><Switch checked={showArchivedSources} onChange={setShowArchivedSources} aria-label="显示归档公司来源" /><span>显示归档公司来源</span></Space>}><Table rowKey="id" dataSource={visibleSources} loading={list.isPending || companies.isPending || (showArchivedSources && archivedCompanies.isPending)} columns={[
+      { title: '公司', dataIndex: 'company_id', render: (v: string) => <>{companyNames[v] || v}{!activeCompanyIds.has(v) && <Tag>已归档</Tag>}</> },
       { title: '渠道', dataIndex: 'kind', render: (v: string) => labels[v] },
       { title: '入口', dataIndex: 'entry_url', ellipsis: true, render: (v: string) => <a href={v} target="_blank" rel="noreferrer">{v}</a> },
-      { title: '状态', dataIndex: 'health', render: (v: string) => status(v) },
+      { title: '状态', render: (_, source: Source) => source.enabled ? status(source.health) : <Tag>已停用</Tag> },
       { title: '最近成功', dataIndex: 'last_success_at', render: (v: string) => formatDate(v) },
       { title: '操作', render: (_, source: Source) => <Button size="small" onClick={() => { setEditingSource(source); form.setFieldsValue(source); setVisible(true) }}>编辑来源</Button> },
     ]} /></Panel>
-    <div style={{ height: 22 }} /><Panel title="来源账号"><Table rowKey="id" dataSource={accounts.data} loading={accounts.isPending} columns={[
+    <div style={{ height: 22 }} /><Panel title="平台账号与登录"><Table rowKey="id" dataSource={accounts.data} loading={accounts.isPending} columns={[
       { title: '账号备注', dataIndex: 'name' },
       { title: '平台', dataIndex: 'kind', render: (v: string) => labels[v] || v },
+      { title: '采集浏览器', render: (_, a: SourceAccount) => <Select style={{ minWidth: 200 }} value={a.probe?.profile_id || 'legacy'} onChange={async value => {
+        try { await api('/probes/accounts/' + a.id, { method: 'PUT', body: JSON.stringify({ profile_id: value === 'legacy' ? null : value }) }); cache.invalidateQueries({ queryKey: ['source-accounts'] }) }
+        catch (e) { message.error((e as Error).message) }
+      }} options={[{ value: 'legacy', label: '服务器浏览器（既有方式）' }, ...(probeProfiles.data || []).map(p => ({ value: p.id, label: p.device_name + ' · ' + p.name, disabled: !p.enabled }))]} /> },
       { title: '状态', dataIndex: 'health', render: (v: string) => status(v) },
       { title: '最近验证', dataIndex: 'last_verified_at', render: (v: string) => formatDate(v) },
-      { title: '操作', render: (_, account: SourceAccount) => <Button size="small" loading={opening === account.id} onClick={() => openLogin(account.id)}>打开登录会话</Button> },
+      { title: '操作', render: (_, account: SourceAccount) => <Button size="small" loading={opening === account.id} onClick={() => openLogin(account.id)}>{account.probe ? '在设备Chrome登录' : '登录' + (labels[account.kind] || account.kind)}</Button> },
     ]} /></Panel>
     <div className="note-box">扫码、验证码和密码由你在独立会话中完成。保存会话不等于已经采集成功，平台会在首次采集时验证可用性。</div>
     <Modal title={editingSource ? '编辑招聘来源' : '绑定招聘来源'} open={visible} onCancel={() => setVisible(false)} onOk={() => form.submit()} confirmLoading={add.isPending} okText="保存来源">
       <Form layout="vertical" form={form} initialValues={{ kind: 'careers', company_id: new URLSearchParams(location.search).get('company') || undefined }} onFinish={v => add.mutate(v)}>
         <Form.Item name="company_id" label="关注公司" rules={[{ required: true }]}><Select disabled={!!editingSource} placeholder="选择公司" options={companies.data?.map(c => ({ value: c.id, label: c.name }))} /></Form.Item>
-        <Form.Item name="kind" label="来源渠道"><Select disabled={!!editingSource} options={['careers', 'boss', 'liepin', 'zhaopin', '51job'].map(v => ({ value: v, label: labels[v] }))} /></Form.Item>
+        <Form.Item name="kind" label="来源渠道"><Select disabled={!!editingSource} onChange={() => form.setFieldValue('account_id', undefined)} options={['careers', 'boss', 'liepin', 'zhaopin', '51job'].map(v => ({ value: v, label: labels[v] }))} /></Form.Item>
         <Form.Item name="entry_url" label="招聘列表或公司招聘页" rules={[{ required: true }, { type: 'url' }]}><Input placeholder="https://..." /></Form.Item>
-        <Form.Item name="account_id" label="使用账号（官网可留空）"><Select allowClear options={accounts.data?.map(a => ({ value: a.id, label: (labels[a.kind] || a.kind) + ' · ' + a.name }))} /></Form.Item>
+        <Form.Item name="account_id" label="使用账号（官网可留空）" extra="请先在下方添加平台账号并登录，再选择与来源渠道相同的平台账号。"><Select allowClear options={accounts.data?.filter(a => a.kind === sourceKind).map(a => ({ value: a.id, label: (labels[a.kind] || a.kind) + ' · ' + a.name }))} /></Form.Item>
         <Form.Item name="external_company_id" label="平台公司标识（可选）" extra="可从公司页链接识别；无法匹配时再补充"><Input /></Form.Item>
         {editingSource && <Form.Item name="enabled" label="启用来源" valuePropName="checked"><Switch /></Form.Item>}
       </Form>
     </Modal>
-    <Modal title="添加来源账号" open={accountVisible} onCancel={() => setAccountVisible(false)}
+    <Modal title="添加平台账号" open={accountVisible} onCancel={() => setAccountVisible(false)}
       onOk={() => accountForm.submit()} confirmLoading={addAccount.isPending} okText="创建账号记录">
       <Form layout="vertical" form={accountForm} initialValues={{ kind: 'boss' }} onFinish={v => addAccount.mutate(v)}>
         <Form.Item name="kind" label="平台"><Select options={['boss', 'liepin', 'zhaopin', '51job', 'xhs', 'dy', 'wb'].map(v => ({ value: v, label: labels[v] }))} /></Form.Item>
         <Form.Item name="name" label="账号备注" rules={[{ required: true }]}><Input placeholder="例如：招聘信息浏览账号" /></Form.Item>
       </Form>
-      <p className="subtle">这里只保存备注，不收集平台密码。创建后通过独立登录窗口认证。</p>
+      <p className="subtle">账号备注只是方便识别的名称。创建记录后，在下方点击对应平台的登录按钮；此处不填写平台密码。</p>
     </Modal>
     <LoginSessionView session={loginSession} onClose={() => setLoginSession(null)}
       onSaved={() => cache.invalidateQueries({ queryKey: ['source-accounts'] })} />
+    <ProbeLoginView session={probeLogin} onClose={() => setProbeLogin(null)} />
   </>
 }
 
@@ -487,6 +508,7 @@ export default function App() {
   if (user.error) return <div className="full-loading"><Alert type="error" message="工作台暂时无法连接" description={user.error.message} action={<Button onClick={() => user.refetch()}>重试</Button>} /></div>
   const nav = [
     ['/', '情报总览', LayoutDashboard], ['/companies', '关注公司', Building2],
+    ['/devices', '采集设备', Database],
     ['/jobs', '招聘情报', BriefcaseBusiness], ['/sources', '数据源', Database],
     ['/analytics', '招聘趋势与比较', ChartNoAxesCombined],
     ['/sentiment', '公司整体舆情', MessageSquare],
@@ -509,6 +531,7 @@ export default function App() {
       <Route path="/" element={<Overview />} /><Route path="/companies" element={<Companies />} />
       <Route path="/companies/:companyId" element={<CompanyWorkspace />} />
       <Route path="/sources" element={<Sources />} /><Route path="/tasks" element={<Tasks />} />
+      <Route path="/devices" element={<DevicesPage />} />
       <Route path="/jobs" element={<Jobs />} /><Route path="/plans" element={<Plans />} />
       <Route path="/reports" element={<Reports />} />
       <Route path="/sentiment" element={<SentimentPage />} />

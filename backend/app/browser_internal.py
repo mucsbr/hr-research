@@ -58,6 +58,9 @@ def collect(data: CollectRequest, x_hr_worker_token: str | None = Header(default
         if binding.kind not in {"boss", "liepin", "zhaopin", "51job"} or frozen["kind"] != binding.kind:
             raise HTTPException(422, "不支持的浏览器采集来源")
         account = db.get(SourceAccount, binding.account_id) if binding.account_id else None
+        from app.probe_service import snapshot_for_account
+        if frozen.get("browser_session") != snapshot_for_account(db, binding.account_id):
+            raise HTTPException(409, "任务冻结后账号浏览器绑定已变化")
         if (account and (account.kind != binding.kind or account.health not in {"saved", "ready"})) or (
             not account and binding.kind not in PUBLIC_PLATFORMS
         ):

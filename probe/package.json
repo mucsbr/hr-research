@@ -1,0 +1,35 @@
+{
+  "name": "guanshi-desktop-probe",
+  "version": "0.1.0",
+  "private": true,
+  "description": "观势采集探针 · 用户主动连接的专用 Chrome 客户端",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc && node scripts/copy-ui.cjs",
+    "test": "npm run build && node --test test/*.test.cjs",
+    "start": "electron .",
+    "package:win": "npm run build && electron-builder --win nsis --x64",
+    "package:mac": "npm run build && electron-builder --mac zip --x64 --arm64"
+  },
+  "dependencies": {
+    "playwright-core": "1.63.0",
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.3",
+    "@types/ws": "8.18.1",
+    "electron": "44.7.0",
+    "electron-builder": "26.15.3",
+    "typescript": "5.9.3"
+  },
+  "build": {
+    "appId": "com.guanshi.hrprobe",
+    "productName": "观势采集探针",
+    "directories": { "output": "release" },
+    "files": ["dist/**/*", "package.json"],
+    "asar": true,
+    "win": { "target": ["nsis"], "artifactName": "guanshi-probe-${version}-windows-${arch}.${ext}" },
+    "nsis": { "oneClick": false, "perMachine": false, "allowElevation": false, "allowToChangeInstallationDirectory": true },
+    "mac": { "target": ["zip"], "category": "public.app-category.business", "artifactName": "guanshi-probe-${version}-macos-${arch}.${ext}", "hardenedRuntime": true }
+  }
+}

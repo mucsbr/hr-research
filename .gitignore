@@ -19,6 +19,12 @@ build/
 *.log
 *.pid
 *.tsbuildinfo
+probe/release/
+probe/.electron-cache/
+probe/.builder-cache/
+probe/vendor-electron/
+probe/dist/
+deploy/probe-tls/
 deploy/*.env
 deploy/*.env.*
 !deploy/server.env.example

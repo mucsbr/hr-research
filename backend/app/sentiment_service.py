@@ -839,7 +839,10 @@ def create_sentiment_task(db, subject_id, *, mode="collect", source_ids=None, ti
             "bettafish": "sentiment_bettafish"}.get(mode)
     if not kind:
         raise CollectionError("invalid_mode", "不支持的舆情任务类型")
-    snapshot = {"subject": row(subject), "sources": [row(source) for source in sources],
+    from app.probe_service import snapshot_for_account
+    snapshot = {"subject": row(subject), "sources": [
+                    {**row(source), "browser_session": snapshot_for_account(db, source.account_id)}
+                    for source in sources],
                 "time_from": time_from.isoformat() if time_from else None,
                 "time_to": time_to.isoformat() if time_to else None,
                 "analysis_topic": analysis_topic, "max_pages": max(1, min(max_pages, 5)),
@@ -894,6 +897,9 @@ def collect_sentiment(task_id, fetcher_factory=None):
             halt = False
             try:
                 account_id = uuid.UUID(frozen["account_id"]) if frozen.get("account_id") else None
+                from app.probe_service import snapshot_for_account
+                if frozen.get("browser_session") != snapshot_for_account(db, account_id):
+                    raise CollectionError("blocked_configuration", "任务冻结后账号浏览器绑定已变化")
                 if account_id:
                     account = db.get(SourceAccount, account_id)
                     if not account or account.kind != frozen["kind"] or account.health not in {"saved", "ready"}:
@@ -907,6 +913,10 @@ def collect_sentiment(task_id, fetcher_factory=None):
                         raise CollectionError("waiting_account", "该账号正在被登录或其他任务使用")
                 if fetcher_factory:
                     fetcher = fetcher_factory(frozen)
+                elif frozen.get("browser_session"):
+                    from app.probe_browser import ProbeSentimentFetcher
+                    fetcher = ProbeSentimentFetcher(account_id, frozen["browser_session"],
+                                                     task_id, execution_attempt)
                 elif account_id or config.get("render") is True or (
                     config.get("render") is None and frozen["kind"] in {"wb", "xhs", "dy"}
                 ):
@@ -930,7 +940,7 @@ def collect_sentiment(task_id, fetcher_factory=None):
                 source_run.status = "partial" if documents and (errors or result.pending_pages) else "succeeded" if documents else "failed"
                 if errors and not documents:
                     source_run.status = next((e["code"] for e in errors if e["code"] in {
-                        "waiting_login", "waiting_verification", "waiting_account"}), "failed")
+                        "waiting_login", "waiting_verification", "waiting_account", "waiting_device"}), "failed")
                 source_run.limitations = [SAMPLE_LIMITATION, "公开页面采集不包含未读取的评论、视频口播和图片文字。"]
                 if counts["unknown_publication_time"]:
                     source_run.limitations += ["部分原文未提供可确认的发布时间，仅记录发现时间。"]
@@ -968,7 +978,7 @@ def collect_sentiment(task_id, fetcher_factory=None):
                 if exc.code == "execution_superseded":
                     db.rollback()
                     raise
-                source_run.status = exc.code if exc.code in {"waiting_login", "waiting_verification", "waiting_account", "cancelled"} else "failed"
+                source_run.status = exc.code if exc.code in {"waiting_login", "waiting_verification", "waiting_account", "waiting_device", "cancelled"} else "failed"
                 source_run.error_code, source_run.error_message = exc.code, exc.message
                 source.health = source_run.status
                 source_run.limitations = [SAMPLE_LIMITATION]
@@ -999,7 +1009,7 @@ def collect_sentiment(task_id, fetcher_factory=None):
         runs = db.scalars(select(SentimentSourceRun).where(SentimentSourceRun.task_id == task_id)).all()
         valid = [run for run in runs if run.status in {"succeeded", "partial"}]
         status = "succeeded" if runs and all(run.status == "succeeded" for run in runs) else "partial" if valid else next(
-            (run.status for run in runs if run.status in {"waiting_login", "waiting_verification", "waiting_account"}), "failed")
+            (run.status for run in runs if run.status in {"waiting_login", "waiting_verification", "waiting_account", "waiting_device"}), "failed")
         task = db.get(TaskRun, task_id)
         issues = [run for run in runs if run.error_message]
         if issues and status != "succeeded" and not task.error_message:

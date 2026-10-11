@@ -400,7 +400,12 @@ def test_real_celery_worker_resumes_http_failure_then_ingests_once(db, site, tmp
     import redis
     settings = get_settings()
     broker = settings.redis_url.get_secret_value()
-    assert urlparse(broker).hostname in {"127.0.0.1", "localhost", "::1"}
+    # The authorized Docker QA stack uses this dedicated service alias; keep the
+    # original safety gate for any non-test environment or unrelated host.
+    host = urlparse(broker).hostname
+    isolated_docker = (host == "probe-redis" and settings.app_env == "test"
+                       and settings.test_database_url.get_secret_value().split("/", 3)[-1].endswith("_test"))
+    assert host in {"127.0.0.1", "localhost", "::1"} or isolated_docker
     cache = redis.Redis.from_url(broker)
     assert cache.ping()
     base, state = site

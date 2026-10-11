@@ -64,6 +64,7 @@ export interface Source {
 }
 export interface SourceAccount {
   id: string; kind: string; name: string; health: string; last_verified_at: string | null
+  probe?: { mode: string; device_id: string; profile_id: string; revision: string } | null
 }
 export interface LoginSession {
   id: string; account_id: string; status: string; url: string; title: string;

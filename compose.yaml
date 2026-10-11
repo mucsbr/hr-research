@@ -14,6 +14,9 @@ x-app-environment: &app-environment
   BROWSER_PROFILES_DIR: /data/browser-profiles
   BROWSER_CACHE_DIR: /opt/playwright
   BROWSER_SERVICE_URL: http://api:8000
+  PROBE_PUBLIC_URL: ${PROBE_PUBLIC_URL:-}
+  PROBE_CA_FILE: ${PROBE_CA_FILE:-}
+  PROBE_DOWNLOADS_DIR: /data/probe-downloads
   # Chromium crashpad/cache must stay writable with a read-only container root.
   XDG_CONFIG_HOME: /tmp/browser-config
   XDG_CACHE_HOME: /tmp/browser-cache
@@ -179,6 +182,32 @@ services:
     security_opt: [no-new-privileges:true]
     healthcheck:
       test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8080/healthz']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  probe-gateway:
+    profiles: [probe]
+    image: ${PROBE_GATEWAY_IMAGE:-nginx:1.28-alpine}
+    user: '${PROBE_UID:-1000}:${PROBE_GID:-1000}'
+    entrypoint: [nginx]
+    command: [-g, 'daemon off;', -c, /etc/nginx/probe.conf]
+    ports:
+      - '${BIND_ADDRESS:-127.0.0.1}:${PROBE_TLS_PORT:-18443}:8443'
+    volumes:
+      - ./deploy/probe-gateway.conf:/etc/nginx/probe.conf:ro
+      - ./deploy/probe-tls:/tls:ro
+    networks: [app]
+    depends_on:
+      web: {condition: service_healthy}
+    read_only: true
+    tmpfs: ['/tmp:size=64m,mode=1777']
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    init: true
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8081/healthz']
       interval: 10s
       timeout: 3s
       retries: 10

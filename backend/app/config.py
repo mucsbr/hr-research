@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     browser_cache_dir: Path = ROOT / ".runtime" / "browsers"
     browser_service_url: str = "http://127.0.0.1:8000"
     browser_login_seconds: int = 900
+    probe_public_url: str = ""
+    probe_ca_file: Path | None = None
+    probe_downloads_dir: Path = ROOT / ".runtime" / "probe-downloads"
+    probe_online_seconds: int = 60
+    probe_command_timeout_seconds: int = 35
+    probe_pairing_seconds: int = 600
     allowed_fetch_hosts: str = ""
     allow_local_fixture_fetch: bool = False
     public_dns_fallback: bool = False

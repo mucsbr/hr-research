@@ -115,10 +115,12 @@ def create_batch(db: Session, data: RunInput, trigger="manual", plan: Monitoring
         )).all()
         if snapshot["sources"]:
             bindings = [b for b in bindings if b.kind in snapshot["sources"]]
+        from app.probe_service import snapshot_for_account
         config = {**snapshot, "company_name": company.name,
                   "company_identity": {"name": company.name, "official_name": company.official_name,
                                        "aliases": db.get(Subject, company.subject_id).aliases},
-                  "sources_snapshot": [row(b) for b in bindings]}
+                  "sources_snapshot": [{**row(b), "browser_session": snapshot_for_account(db, b.account_id)}
+                                       for b in bindings]}
         if resume_from_task_id:
             config["resume_from_task_id"] = str(resume_from_task_id)
         task = TaskRun(

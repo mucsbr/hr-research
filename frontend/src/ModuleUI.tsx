@@ -15,7 +15,7 @@ export const dateText = (value?: string | null) => beijingDateTime(value)
 const stateNames: Record<string, string> = {
   queued: '排队中', running: '运行中', sending: '发送中', retrying: '等待重试', sent: '已发送',
   unknown: '结果未知', failed: '失败', cancelled: '已取消', succeeded: '完成', partial: '部分完成',
-  waiting_login: '需要登录', waiting_verification: '需要人工验证', waiting_account: '等待账号空闲',
+  waiting_login: '需要登录', waiting_verification: '需要人工验证', waiting_account: '等待账号空闲', waiting_device: '等待采集设备',
   blocked_configuration: '需要配置', ready: '可用', configured: '已配置',
   negative: '负面线索', positive: '正面线索', neutral: '中性', mixed: '混合',
   negative_clue: '负面线索', positive_clue: '正面线索', mixed_clue: '混合线索',

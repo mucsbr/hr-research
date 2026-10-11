@@ -21,6 +21,7 @@ from app import checkpoint_models  # noqa: F401
 from app import adapter_code_models  # noqa: F401
 from app import adapter_runtime_models  # noqa: F401
 from app import retention_models  # noqa: F401
+from app import probe_models  # noqa: F401
 
 
 @pytest.fixture(scope="session")
@@ -33,6 +34,7 @@ def engine():
         "APP_ENV": "test",
         "LLM_API_KEY": "unit-test-not-a-real-key",
         "LLM_BASE_URL": "https://models.example.invalid/v1",
+        "LLM_DAILY_REQUEST_LIMIT": "12",  # Mock requests only; APP_ENV=test blocks real model transport.
         "ADMIN_PASSWORD": "unit-test-password-only",
         "APP_SECRET": "unit-test-only-signing-secret-" * 3,
         "ENCRYPTION_KEY": Fernet.generate_key().decode(),

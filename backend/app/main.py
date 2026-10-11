@@ -22,6 +22,7 @@ from app.news_api import router as news_router
 from app.recruitment_management_api import router as recruitment_management_router
 from app.retention_api import router as retention_router
 from app.security import bootstrap_admin
+from app.probe_api import router as probe_router
 
 
 @asynccontextmanager
@@ -46,7 +47,9 @@ async def validation_error(request: Request, exc: RequestValidationError):
     ]})
 
 
-app.add_middleware(CORSMiddleware, allow_origins=[get_settings().app_url],
+app.add_middleware(CORSMiddleware, allow_origins=list(filter(None, [
+    get_settings().app_url, get_settings().probe_public_url,
+])),
                    allow_credentials=True, allow_methods=["*"], allow_headers=["Content-Type", "Idempotency-Key"])
 
 
@@ -54,7 +57,9 @@ app.add_middleware(CORSMiddleware, allow_origins=[get_settings().app_url],
 async def origin_guard(request: Request, call_next):
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
         origin = request.headers.get("origin")
-        if origin and origin.rstrip("/") != get_settings().app_url.rstrip("/"):
+        if origin and origin.rstrip("/") not in {
+            get_settings().app_url.rstrip("/"), get_settings().probe_public_url.rstrip("/"),
+        }:
             return JSONResponse({"detail": "不允许的请求来源"}, status_code=403)
     return await call_next(request)
 
@@ -71,6 +76,7 @@ app.include_router(sentiment_router)
 app.include_router(news_router)
 app.include_router(recruitment_management_router)
 app.include_router(retention_router)
+app.include_router(probe_router)
 
 
 @app.get("/api/v1/health")

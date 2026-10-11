@@ -153,7 +153,8 @@ def collect_platform(account_id, kind, binding, identity, filters, progress=None
     with use_manifest(kind, manifest), capture_repairs(kind, binding, identity) as capture:
         try:
             result = _collect_platform(account_id, kind, binding, identity, filters, progress,
-                                       mapping=manifest, repair_state=capture, program_runtime=runtime)
+                                       mapping=manifest, repair_state=capture, program_runtime=runtime,
+                                       probe_scope=runtime_scope)
         except CollectionError as exc:
             if runtime is not None:
                 exc.code_execution = {**runtime.evidence(), "verified": False, "error_code": exc.code}
@@ -166,13 +167,14 @@ def collect_platform(account_id, kind, binding, identity, filters, progress=None
 
 
 def _collect_platform(account_id, kind, binding, identity, filters, progress=None, *,
-                      mapping=None, repair_state=None, program_runtime=None):
+                      mapping=None, repair_state=None, program_runtime=None, probe_scope=None):
     mapping = contract(kind) if mapping is None else mapping
     source_host = urlparse(binding["entry_url"]).hostname or ""
     root = PLATFORM_ROOTS[kind]
     if source_host != root and not source_host.endswith("." + root):
         raise CollectionError("source_host_mismatch", "公司页域名与招聘平台不一致")
-    state = load_state(account_id) if account_id else None
+    probe = binding.get("browser_session")
+    state = {"cookies": [], "origins": []} if probe else load_state(account_id) if account_id else None
     if state is None and kind in PUBLIC_PLATFORMS and program_runtime is None:
         from app.platform_documents import collect_public_platform
         try:
@@ -210,7 +212,9 @@ def _collect_platform(account_id, kind, binding, identity, filters, progress=Non
             exc.code_failure_evidence = capture_program_failure(program_context)
             raise
 
-    with sync_playwright() as playwright:
+    from app.probe_browser import ProbePlaywright
+    provider = ProbePlaywright(account_id, probe, probe_scope, mapping["response_path_pattern"]) if probe else sync_playwright()
+    with provider as playwright:
         browser = playwright.chromium.launch(channel="chromium", headless=True)
         context = browser.new_context(storage_state=state, locale="zh-CN",
                                       viewport=VIEWPORT, timezone_id="Asia/Shanghai",
@@ -432,11 +436,21 @@ def _collect_platform(account_id, kind, binding, identity, filters, progress=Non
                     break
             if not result.records:
                 raise CollectionError("source_contract_changed", "岗位详情未能验证，未保存缺失正文的岗位")
-            if account_id:
+            if account_id and not probe:
                 save_state(account_id, context.storage_state(indexed_db=True))
             result.coverage = "partial"
             result.stop_reason = "按平台账号可访问范围有限采集；尚未证明全量覆盖"
             return result
+        except CollectionError as exc:
+            if probe and result.records and exc.code in {
+                "waiting_device", "chrome_closed", "device_paused", "probe_response_timeout",
+                "execution_unknown", "browser_operation_failed",
+            }:
+                result.coverage = "partial"
+                result.stop_reason = "设备浏览器读取中断，保留已核验岗位，未推断下架"
+                result.errors.append(exc.message)
+                return result
+            raise
         finally:
             context.close()
             browser.close()

@@ -139,7 +139,9 @@ def add_source(data: SourceInput, db: Db, user: CurrentUser):
 
 @router.get("/source-accounts")
 def accounts(db: Db, user: CurrentUser):
-    return [row(a, exclude={"profile_ref", "session_ref"}) for a in db.scalars(
+    from app.probe_service import snapshot_for_account
+    return [{**row(a, exclude={"profile_ref", "session_ref"}),
+             "probe": snapshot_for_account(db, a.id)} for a in db.scalars(
         select(SourceAccount).order_by(SourceAccount.created_at.desc()))]
 
 
@@ -398,7 +400,7 @@ def dashboard(db: Db, user: CurrentUser):
         "active_tasks": db.scalar(select(func.count()).select_from(TaskRun).where(
             TaskRun.status.in_(["queued", "running"]))),
         "needs_action": db.scalar(select(func.count()).select_from(TaskRun).where(
-            TaskRun.status.in_(["waiting_login", "waiting_verification", "blocked_configuration"]))),
+            TaskRun.status.in_(["waiting_login", "waiting_verification", "waiting_device", "blocked_configuration"]))),
         "changes_7d": db.scalar(select(func.count()).select_from(JobChange).where(
             JobChange.created_at > now() - timedelta(days=7), JobChange.type != "baseline_seen")),
         "latest_completed_at": db.scalar(select(func.max(TaskRun.finished_at))),

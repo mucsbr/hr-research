@@ -1,0 +1,16 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; frame-src 'none'">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>观势采集探针</title><link rel="stylesheet" href="style.css"></head>
+<body><main><header><span class="eyebrow">观势 · 桌面采集</span><h1>采集探针</h1><p>在这台电脑登录，平台使用同一台 Chrome 完成采集。</p><div id="state" class="state">正在准备</div></header>
+<section id="pair"><h2>1. 连接你的平台</h2><p>从Web“采集设备”页面生成配对配置，粘贴到这里。</p>
+<label>平台地址<input id="server" placeholder="粘贴配对配置后自动填写" maxlength="512"></label>
+<label>配对配置<textarea id="config" rows="3" placeholder="hrprobe1.…"></textarea></label>
+<label>设备备注<input id="name" value="我的采集设备" maxlength="120"></label>
+<label class="check"><input type="checkbox" id="consent">允许该平台使用探针专用Chrome采集已绑定的业务来源</label><button id="register">配对并连接</button></section>
+<section id="connected" hidden><h2>1. 平台已配对</h2><p id="server-name"></p><div class="actions"><button id="pause" class="secondary">暂停采集</button><button id="reconnect" class="secondary">重新连接</button><button id="unpair" class="secondary">解除配对</button></div>
+<label class="check"><input type="checkbox" id="startup">登录电脑后自动启动探针</label></section>
+<section id="login" hidden><h2>2. 打开Chrome并登录</h2><p>请选择平台，Chrome会在这台电脑打开。扫码和验证码由你直接在Chrome里完成。</p>
+<label>采集浏览器<select id="profile"></select></label><label>平台<select id="kind"><option value="boss">BOSS直聘</option><option value="wb">微博</option><option value="xhs">小红书</option><option value="dy">抖音</option><option value="liepin">猎聘</option><option value="zhaopin">智联招聘</option><option value="51job">前程无忧</option></select></label>
+<label>账号备注<input id="account-name" placeholder="例如：招聘信息浏览账号" maxlength="120"></label><div class="actions"><button id="open-login">打开Chrome并登录</button><button id="confirm-login" class="secondary" disabled>我已完成登录</button></div></section>
+<section><h2>3. 在Web绑定来源并开始采集</h2><p>登录记录保留在这台电脑。回到平台选择该账号、绑定真实公司来源，再执行任务。</p><p class="subtle">电脑睡眠、Chrome关闭或探针离线时，任务会等待或提示处理；请保持电脑和探针在线。</p></section>
+<div id="notice" role="status"></div></main><script src="app.js"></script></body></html>
