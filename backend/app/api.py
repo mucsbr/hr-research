@@ -138,11 +138,13 @@ def add_source(data: SourceInput, db: Db, user: CurrentUser):
 
 
 @router.get("/source-accounts")
-def accounts(db: Db, user: CurrentUser):
+def accounts(db: Db, user: CurrentUser, include_archived: bool = False):
     from app.probe_service import snapshot_for_account
+    query = select(SourceAccount).order_by(SourceAccount.created_at.desc())
+    if not include_archived:
+        query = query.where(SourceAccount.archived.is_(False))
     return [{**row(a, exclude={"profile_ref", "session_ref"}),
-             "probe": snapshot_for_account(db, a.id)} for a in db.scalars(
-        select(SourceAccount).order_by(SourceAccount.created_at.desc()))]
+             "probe": snapshot_for_account(db, a.id)} for a in db.scalars(query)]
 
 
 @router.post("/source-accounts", status_code=201)

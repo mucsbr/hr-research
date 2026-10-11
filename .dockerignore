@@ -19,4 +19,9 @@ deploy/*.env
 deploy/*.env.*
 deploy/verification-results*
 deploy/backups
+deploy/probe-tls
+probe/release
+probe/vendor-electron
+probe/.electron-cache
+probe/.builder-cache
 **/.DS_Store

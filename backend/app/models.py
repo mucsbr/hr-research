@@ -63,6 +63,7 @@ class SourceAccount(Entity, Base):
     __tablename__ = "source_accounts"
     kind: Mapped[str] = mapped_column(String(30))
     name: Mapped[str] = mapped_column(String(120))
+    archived: Mapped[bool] = mapped_column(default=False)
     health: Mapped[str] = mapped_column(String(40), default="logged_out")
     profile_ref: Mapped[str | None] = mapped_column(Text)
     session_ref: Mapped[str | None] = mapped_column(Text)

@@ -49,6 +49,8 @@ def start_login(account_id: uuid.UUID, db: Db, user: AdminUser):
     account = db.get(SourceAccount, account_id)
     if not account:
         raise HTTPException(404, "账号不存在")
+    if account.archived:
+        raise HTTPException(409, "账号已归档")
     from app.probe_service import snapshot_for_account
     if snapshot_for_account(db, account_id):
         raise HTTPException(409, "该账号使用桌面探针，请在绑定设备的Chrome中登录")

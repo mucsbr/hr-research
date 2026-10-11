@@ -401,6 +401,8 @@ def bind_account(db, account_id, profile_id, user):
     account = db.get(SourceAccount, account_id)
     if not account or account.kind not in PLATFORMS:
         raise HTTPException(404, "来源账号不存在或平台不支持")
+    if account.archived:
+        raise HTTPException(409, "账号已归档")
     binding = db.scalar(
         select(ProbeAccountBinding)
         .where(ProbeAccountBinding.account_id == account_id)

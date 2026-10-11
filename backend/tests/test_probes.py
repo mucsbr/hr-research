@@ -3,6 +3,7 @@
 import base64
 from datetime import timedelta
 import json
+import time
 import uuid
 
 import pytest
@@ -276,7 +277,12 @@ def test_websocket_uses_header_auth_and_supports_bounded_command_receipts(
             }
         )
         assert socket.receive_json()["type"] == "receipt_ack"
+    # The ASGI disconnect finalizer can commit after TestClient exits the socket.
+    deadline = time.monotonic() + 3
     public = signed_client.get("/api/v1/probes/devices").json()[0]
+    while public["status"] != "offline" and time.monotonic() < deadline:
+        time.sleep(0.05)
+        public = signed_client.get("/api/v1/probes/devices").json()[0]
     assert public["status"] == "offline"
 
 
