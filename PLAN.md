@@ -431,6 +431,8 @@ queued / running / waiting_* -> cancelled
 
 ### 9.3 数据源与登录中心
 
+2026-10-11补充的拟议实现：需要登录来源优先使用Windows/macOS桌面探针。用户从Web下载安装、一次性配对；探针主动连接平台，在本机管理持久Chrome并引导用户登录，采集复用同一浏览器和网络出口。服务器经既有出站连接下发有界浏览器任务，不反连终端；CDP由探针本地封装，MCP仅作为可选平台工具接口。该路径尚未实现，完整范围与验收见 [桌面探针方案](docs/DESKTOP_PROBE_PLAN.md)。原服务器交互窗口为既有路径，手工CDP为高级接入；不把它们的历史验证当成桌面安装/注册/真实采集已完成。
+
 SourceAccount 属于“平台来源+账号”，公司来源绑定可以引用账号。账号不等于某一家公司。
 
 账号健康状态：unknown / logged_out / ready / expired / verification_required / restricted / error。
